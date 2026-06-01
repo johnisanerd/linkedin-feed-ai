@@ -5,7 +5,8 @@ import { cleanPostOutput } from "@/lib/prompts";
 
 /**
  * Core publish logic shared by manual publish and queue processor.
- * Publishes a post to LinkedIn using its saved branded image (or generates one if missing).
+ * Publishes a post to LinkedIn. If skipImage is false (default), attaches
+ * the saved branded image (or generates one if missing).
  * Returns the LinkedIn post result.
  */
 export async function publishPostToLinkedInCore(
@@ -24,19 +25,24 @@ export async function publishPostToLinkedInCore(
 
   if (!post) throw new Error("Post not found");
 
-  // Use saved branded image or generate fallback
-  let imageBuffer: Buffer;
-  if (post.brandedImageData) {
-    imageBuffer = Buffer.from(post.brandedImageData);
-  } else {
-    imageBuffer = await generatePostImage({
-      title: post.idea?.title || "LinkedIn Post",
-      content: cleanPostOutput(content),
-      authorName: "paschalidi",
-    });
+  let mediaUrl: string | undefined;
+
+  if (!post.skipImage) {
+    // Use saved branded image or generate fallback
+    let imageBuffer: Buffer;
+    if (post.brandedImageData) {
+      imageBuffer = Buffer.from(post.brandedImageData);
+    } else {
+      imageBuffer = await generatePostImage({
+        title: post.idea?.title || "LinkedIn Post",
+        content: cleanPostOutput(content),
+        authorName: "paschalidi",
+      });
+    }
+
+    mediaUrl = await uploadMediaToZernio(imageBuffer);
   }
 
-  const mediaUrl = await uploadMediaToZernio(imageBuffer);
   const result = await createLinkedInPost(content, accountId, mediaUrl);
 
   // Mark post as posted

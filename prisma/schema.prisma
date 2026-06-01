@@ -108,6 +108,7 @@ model GeneratedPost {
   linkedInPostId      String?   @map("linkedin_post_id")
   publishedToLinkedInAt DateTime? @map("published_to_linkedin_at")
   brandedImageData    Bytes?    @map("branded_image_data")
+  skipImage           Boolean   @default(false) @map("skip_image")
   createdAt           DateTime  @default(now()) @map("created_at")
   queueItem           PublishQueue?
 

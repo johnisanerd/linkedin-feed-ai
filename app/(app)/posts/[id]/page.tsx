@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getPost, updatePostStatus } from "../actions";
+import { getPost, updatePostStatus, toggleSkipImage } from "../actions";
 import { addToQueue, removeFromQueue, getQueueItem } from "../queue-actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -152,6 +152,33 @@ export default async function PostDetailPage({
 
             {/* Branded Image Preview */}
             <PostImagePreview postId={id} />
+
+            {/* Skip image toggle */}
+            {!post.publishedToLinkedInAt && (
+              <form
+                action={async (formData: FormData) => {
+                  "use server";
+                  const skipImage = formData.get("skipImage") === "on";
+                  await toggleSkipImage(id, skipImage);
+                  revalidatePath(`/posts/${id}`);
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  type="checkbox"
+                  id="skipImage"
+                  name="skipImage"
+                  defaultChecked={post.skipImage}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <label htmlFor="skipImage" className="text-sm text-muted-foreground cursor-pointer">
+                  Publish without image
+                </label>
+                <Button type="submit" variant="ghost" size="sm" className="ml-auto text-xs h-auto py-1 px-2">
+                  Save
+                </Button>
+              </form>
+            )}
 
             {post.status === "approved" && !queueItem && (
               <form

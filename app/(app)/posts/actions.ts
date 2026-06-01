@@ -241,6 +241,18 @@ export async function archivePost(id: string) {
   }
 }
 
+export async function toggleSkipImage(id: string, skipImage: boolean) {
+  try {
+    return await prisma.generatedPost.update({
+      where: { id },
+      data: { skipImage },
+    });
+  } catch (err: any) {
+    console.error("toggleSkipImage error:", err);
+    throw new Error(err?.message || "Failed to update image setting");
+  }
+}
+
 export async function publishToLinkedIn(id: string, content: string) {
   try {
     if (!content || content.trim().length === 0) {
