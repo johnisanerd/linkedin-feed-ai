@@ -6,6 +6,7 @@ import { fetchRSSFeed, filterRecentItems, RSSItem } from "@/lib/rss-parser";
 import { extractArticle, extractArticleLinksFromPage, computeContentHash } from "@/lib/article-extractor";
 import { chunkArticle } from "@/lib/chunker";
 import { generateEmbedding, formatEmbeddingForPostgres } from "@/lib/gemini";
+import { parseHTML } from "linkedom";
 
 function resolveUrl(link: string, feedUrl: string): string {
   if (!link) return "";
@@ -138,9 +139,9 @@ async function ingestSingleArticle(
  * Extract article links from raw HTML content (e.g. from RSS content:encoded).
  */
 function extractLinksFromHtml(html: string, baseUrl: string): Array<{ url: string; title: string }> {
-  const { JSDOM } = require("jsdom");
-  const dom = new JSDOM(html, { url: baseUrl });
-  const doc = dom.window.document;
+  const { window } = parseHTML(html);
+  (window.document as any).documentURI = baseUrl;
+  const doc = window.document;
 
   const baseDomain = new URL(baseUrl).hostname;
   const links = new Map<string, string>();

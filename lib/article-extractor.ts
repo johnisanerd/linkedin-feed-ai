@@ -1,5 +1,5 @@
 import { Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
+import { parseHTML } from "linkedom";
 
 export interface ExtractedMetadata {
   title: string;
@@ -29,8 +29,7 @@ export interface ExtractedArticle {
  * Extract metadata from Open Graph, Twitter cards, and JSON-LD before
  * falling back to Readability output.
  */
-function extractMetadataFromDom(dom: JSDOM): ExtractedMetadata {
-  const doc = dom.window.document;
+function extractMetadataFromDom(doc: Document): ExtractedMetadata {
   const meta = (name: string) =>
     doc
       .querySelector(
@@ -91,10 +90,10 @@ function extractMetadataFromDom(dom: JSDOM): ExtractedMetadata {
 }
 
 /**
- * Run Mozilla Readability on the given HTML.
+ * Run Mozilla Readability on the given HTML document.
  */
-function runReadability(dom: JSDOM) {
-  const reader = new Readability(dom.window.document, {
+function runReadability(doc: Document) {
+  const reader = new Readability(doc, {
     charThreshold: 500,
     keepClasses: false,
   });
@@ -209,8 +208,9 @@ export async function extractArticle(
   html: string;
 }> {
   let { html, url: resolvedUrl } = await fetchHtml(url);
-  let dom = new JSDOM(html, { url: resolvedUrl });
-  let readabilityResult = runReadability(dom);
+  const { window } = parseHTML(html);
+  (window.document as any).documentURI = resolvedUrl;
+  let readabilityResult = runReadability(window.document);
 
   // SPA fallback: if content is suspiciously short and the page
   // looks like a React/Vue shell, we would normally use Playwright.
@@ -232,7 +232,7 @@ export async function extractArticle(
     .trim();
 
   // Extract metadata
-  const metadata = extractMetadataFromDom(dom);
+  const metadata = extractMetadataFromDom(window.document);
 
   // Prefer Readability title (already cleaned) over raw metadata
   const title =
@@ -308,7 +308,7 @@ const NON_ARTICLE_PATTERNS = [
   /youtu\.be/i,
   /tiktok\.com/i,
   /reddit\.com/i,
-  /medium\.com\/@/i, // medium profiles, not articles
+  /medium\.com\/ @/i, // medium profiles, not articles
   // Newsletter / subscription
   /substack\.com\/(subscribe|archive|podcast)/i,
   /mailchi\.mp/i,
@@ -349,8 +349,9 @@ export async function extractArticleLinksFromPage(
 ): Promise<ArticleLink[]> {
   try {
     const { html } = await fetchHtml(url);
-    const dom = new JSDOM(html, { url });
-    const readabilityResult = runReadability(dom);
+    const { window } = parseHTML(html);
+    (window.document as any).documentURI = url;
+    const readabilityResult = runReadability(window.document);
 
     if (!readabilityResult) {
       return [];
@@ -358,8 +359,9 @@ export async function extractArticleLinksFromPage(
 
     // Parse the cleaned HTML to find links
     const contentHtml = readabilityResult.content || "";
-    const cleanedDom = new JSDOM(contentHtml, { url });
-    const doc = cleanedDom.window.document;
+    const { window: win2 } = parseHTML(contentHtml);
+    (win2.document as any).documentURI = url;
+    const doc = win2.document;
 
     const pageDomain = new URL(url).hostname;
     const links = new Map<string, string>(); // dedup by URL
