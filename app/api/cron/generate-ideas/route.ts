@@ -28,16 +28,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Gate: check if already ran today in user's timezone
-    const now = new Date();
-    const tzOffset = getTimezoneOffsetHours(settings.timezone);
-    const today = new Date(now.getTime() + tzOffset * 60 * 60 * 1000);
-    today.setUTCHours(0, 0, 0, 0);
+    const todayStart = getStartOfDayInTimezone(settings.timezone || "UTC");
 
     const alreadyRan = await prisma.automationLog.findFirst({
       where: {
         jobType: "generate-ideas",
         status: "success",
-        createdAt: { gte: today },
+        createdAt: { gte: todayStart },
       },
     });
 
@@ -87,13 +84,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getTimezoneOffsetHours(timezone: string): number {
-  try {
-    const now = new Date();
-    const tzDate = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
-    const utcDate = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
-    return (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
-  } catch {
-    return 0;
-  }
+function getStartOfDayInTimezone(timezone: string): Date {
+  const now = new Date();
+  const dateStr = now.toLocaleString("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const [month, day, year] = dateStr.split("/");
+  return new Date(`${year}-${month}-${day}T00:00:00Z`);
 }
