@@ -46,14 +46,23 @@ export async function publishPostToLinkedInCore(
   const result = await createLinkedInPost(content, accountId, mediaUrl);
 
   // Mark post as posted
-  await prisma.generatedPost.update({
-    where: { id: postId },
-    data: {
-      status: "posted",
-      linkedInPostId: result.postId,
-      publishedToLinkedInAt: new Date(),
-    },
-  });
+  try {
+    await prisma.generatedPost.update({
+      where: { id: postId },
+      data: {
+        status: "posted",
+        linkedInPostId: result.postId,
+        publishedToLinkedInAt: new Date(),
+      },
+    });
+  } catch (dbErr: any) {
+    // Log but don't throw — the LinkedIn post is already live.
+    // The caller (queue processor or manual publish) can retry the DB update.
+    console.error(
+      `[publish-core] LinkedIn post ${result.postId} published successfully, but DB update failed:`,
+      dbErr?.message || dbErr
+    );
+  }
 
   return result;
 }

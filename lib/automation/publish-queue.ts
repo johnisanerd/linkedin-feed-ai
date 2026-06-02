@@ -57,6 +57,17 @@ export async function processPublishQueue(): Promise<{
   try {
     const result = await publishPostToLinkedInCore(postId, content);
 
+    // Explicitly mark the post as posted (defensive: publish-core should also do this,
+    // but we ensure it here in case of partial failures or connection issues)
+    await prisma.generatedPost.update({
+      where: { id: postId },
+      data: {
+        status: "posted",
+        linkedInPostId: result.postId,
+        publishedToLinkedInAt: new Date(),
+      },
+    });
+
     // Mark queue item as published
     await prisma.publishQueue.update({
       where: { id: queueItem.id },
