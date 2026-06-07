@@ -1,4 +1,4 @@
-import { ImageResponse } from "@vercel/og";
+import { ImageResponse } from "next/og";
 import { IMAGE_WIDTH, IMAGE_HEIGHT } from "./image-config";
 
 export interface PostImageOptions {
