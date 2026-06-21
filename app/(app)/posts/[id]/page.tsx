@@ -13,6 +13,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CheckCircle, CalendarPlus, CalendarMinus } from "lucide-react";
 import Link from "next/link";
+
+// Post state can change via cron (publish) or other tabs (edits). Always render fresh.
+export const dynamic = "force-dynamic";
 import { VersionToolbar } from "./version-toolbar";
 import { PostEditor } from "./post-editor";
 import PostImagePreview from "./post-image-preview";

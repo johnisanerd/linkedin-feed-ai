@@ -10,6 +10,9 @@ import {
 import { AlertCircle } from "lucide-react";
 import ComposeForm from "./compose-form";
 
+// Ideas list + style profiles are mutated by cron. Force dynamic.
+export const dynamic = "force-dynamic";
+
 export default async function ComposePage({
   searchParams,
 }: {

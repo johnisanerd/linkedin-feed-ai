@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateDailyIdeas } from "@/lib/automation/generate-ideas";
 import { logAutomationJob } from "@/lib/automation/log";
+import { revalidatePath } from "next/cache";
 
 /**
  * Daily idea generation cron.
@@ -73,6 +75,15 @@ export async function GET(request: NextRequest) {
 
     const logMsg = `Generated ${generated.length}/${ideasPerDay} ideas. Generated: [${generated.join(", ")}]. Skipped: [${skipped.join(", ")}]`;
     await logAutomationJob("generate-ideas", "success", logMsg);
+
+    // Refresh pages that show ideas/dashboard so users see the new data immediately.
+    if (generated.length > 0) {
+      after(() => {
+        revalidatePath("/ideas");
+        revalidatePath("/dashboard");
+        revalidatePath("/compose");
+      });
+    }
 
     return NextResponse.json({ success: true, generated, skipped });
   } catch (error: any) {

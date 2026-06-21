@@ -11,6 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+// Sources + articles are mutated by the RSS sync cron. Force dynamic to avoid stale lists.
+export const dynamic = "force-dynamic";
+
 import {
   Card,
   CardContent,

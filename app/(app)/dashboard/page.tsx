@@ -8,6 +8,11 @@ import { addToQueue } from "../posts/queue-actions";
 import { getNextPreferredPostingTime } from "@/lib/automation/schedule";
 import { revalidatePath } from "next/cache";
 
+// Dashboard reads DB (ideas, automation status, queue) that cron mutates in the background.
+// Without this, the page is statically rendered at build time and goes stale until a user
+// action triggers revalidatePath. Cron writes would be invisible.
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const ideas = await prisma.dailyIdea.findMany({
     where: { status: "draft" },

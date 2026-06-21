@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { processPublishQueue } from "@/lib/automation/publish-queue";
 import { logAutomationJob } from "@/lib/automation/log";
+import { revalidatePath } from "next/cache";
 
 /**
  * Publish queue processor cron.
@@ -88,6 +90,14 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await processPublishQueue();
+
+    // Refresh pages that display post/queue state.
+    after(() => {
+      revalidatePath("/posts");
+      revalidatePath("/posts", "layout");
+      revalidatePath("/dashboard");
+    });
+
     return NextResponse.json({ success: true, ...result });
   } catch (error: any) {
     await logAutomationJob("publish-queue", "failed", error.message);

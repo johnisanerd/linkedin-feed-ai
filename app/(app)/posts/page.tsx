@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PostList from "./post-list";
 import { archivePost } from "./actions";
 
+// Posts + queue are mutated by the publish cron. Force dynamic to avoid stale lists.
+export const dynamic = "force-dynamic";
+
 export default async function PostsPage() {
   const posts = await prisma.generatedPost.findMany({
     where: { status: { not: "archived" } },

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { syncAllRSSFeeds } from "@/app/(app)/sources/rss-actions";
 import { logAutomationJob } from "@/lib/automation/log";
+import { revalidatePath } from "next/cache";
 
 export async function GET(request: NextRequest) {
   // Protect cron endpoint with a secret
@@ -24,6 +26,14 @@ export async function GET(request: NextRequest) {
       totalFailed > 0 ? "success" : "success",
       `Feeds: ${results.length}, Ingested: ${totalIngested}, Failed: ${totalFailed}`
     );
+
+    if (totalIngested > 0) {
+      after(() => {
+        revalidatePath("/sources");
+        revalidatePath("/dashboard");
+        revalidatePath("/compose");
+      });
+    }
 
     return NextResponse.json({
       success: true,
