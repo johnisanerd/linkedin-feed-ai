@@ -1,5 +1,5 @@
 const APIFY_BASE_URL = "https://api.apify.com/v2";
-const ACTOR_ID = "scraper-engine~linkedin-profile-post-scraper";
+const ACTOR_ID = "johnvc~linkedin-posts-api";
 
 function getApiKey(): string {
   const apiKey = process.env.APIFY_API_TOKEN;
@@ -26,6 +26,9 @@ function getWebhookUrl(): string | null {
 
 interface ApifyPost {
   text?: string;
+  datePosted?: string;
+  postUrl?: string;
+  error_message?: string;
   postedAtISO?: string;
   postedAtTimestamp?: number;
   url?: string;
@@ -54,12 +57,14 @@ function parsePosts(items: ApifyPost[]): {
   posts: ScrapedPost[];
   displayName: string | null;
 } {
-  const posts: ScrapedPost[] = items
+  const postItems = items.filter((item) => !item.error_message);
+
+  const posts: ScrapedPost[] = postItems
     .filter((item) => item.text && item.text.trim().length > 10)
     .map((item) => ({
       text: item.text!.trim(),
-      postedAt: item.postedAtISO || item.date || null,
-      url: item.url || null,
+      postedAt: item.datePosted || item.postedAtISO || item.date || null,
+      url: item.postUrl || item.url || null,
       engagement: {
         likes: item.numLikes ?? item.likes ?? item.likesCount ?? 0,
         comments: item.numComments ?? item.comments ?? item.commentsCount ?? 0,
@@ -67,7 +72,7 @@ function parsePosts(items: ApifyPost[]): {
     }));
 
   const displayName =
-    items[0]?.authorFullName || items[0]?.authorName || null;
+    postItems[0]?.authorFullName || postItems[0]?.authorName || null;
 
   return { posts, displayName };
 }
@@ -114,9 +119,8 @@ export async function startLinkedInScrape(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      urls: [profileUrl],
-      maxPosts: 50,
-      proxyConfiguration: { useApifyProxy: false },
+      profileUrls: [profileUrl],
+      maxPostsPerProfile: 50,
     }),
   });
 
